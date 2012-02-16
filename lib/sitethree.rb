@@ -1,5 +1,8 @@
 require "sitethree/version"
-require "httparty"
+require 'net/http'
+require 'uri'
+require 'cgi'
+require 'nokogiri'
 
 module Sitethree
   API_URL         = 'http://xml.sitethree.com/'
@@ -16,17 +19,20 @@ module Sitethree
     end
 
     def get_ads(params = {})
-      response = HTTParty.get(API_URL, :query => {:partner_id => self.class.publisher_id, :feed_id => self.class.feed_id, :source => params[:source], :user_agent => params[:user_agent], :user_ip => params[:user_ip], :keywords => params[:keywords]})
-      if response['response']['valid_request'] == 'false'
-        self.class.errors = response['response']['error']
-        return []
-      else
-        ads = []
-        response['response']['ads']['ad'].each do |ad|
-          ads << {:title => ad['title'], :description => ad['description'], :display_url => ad['display_url'], :click_url => ad['click_url']}
+      ads = []
+      url = "#{API_URL}?partner_id=#{self.class.publisher_id}&feed_id=#{self.class.feed_id}&source=#{CGI::escape(params[:source])}&user_ip=#{params[:user_ip]}&user_agent=#{CGI::escape(params[:user_agent])}&keywords=#{CGI::escape(params[:keywords])}#{params[:testapi] ? "&test=testapi" : ""}"
+      uri = URI.parse(url)
+      response = Net::HTTP.get_response(uri)
+      doc = Nokogiri::XML.parse(response.body)
+      response = doc.xpath("/response").first
+      if response.attr("valid_request") == "true" && response.attr("num_results") != '0'
+        doc.xpath("//ad").each do |ad|
+          ads << {'title' => ad.attr("title"), 'description' => ad.attr("description"), 'display_url' => ad.attr("display_url"), 'click_url' => ad.text.strip}
         end
-        return ads
+      else
+        Rails.logger.info url
       end
+      ads
     end
   end
 end

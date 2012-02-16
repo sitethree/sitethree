@@ -5,3 +5,8 @@
 ## v0.0.2
 
 * Added missing require [shawn]
+
+## v0.0.3
+
+* change from httparty to nokogiri and net/http
+* added the ability to use the testapi
