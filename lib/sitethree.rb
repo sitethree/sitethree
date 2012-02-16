@@ -1,4 +1,5 @@
 require "sitethree/version"
+require "httparty"
 
 module Sitethree
   API_URL         = 'http://xml.sitethree.com/'
